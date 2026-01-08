@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app
+      - db_data:/app/db_data
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - SERVER_EMAIL=${SERVER_EMAIL}
+    command: sh -c "python manage.py migrate &&  python manage.py runserver 0.0.0.0:8000"
+    restart: unless-stopped
+
+volumes:
+  db_data: 
