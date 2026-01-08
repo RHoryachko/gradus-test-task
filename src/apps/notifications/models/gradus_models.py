@@ -1,7 +1,12 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from ._base import BaseUniqueNameModel
+from apps.notifications.models._base import BaseUniqueNameModel
+
+from apps.notifications.validators import (
+    validate_template, 
+    validate_template_uniqueness
+)
 
 
 class Variable(BaseUniqueNameModel):
@@ -12,6 +17,11 @@ class Variable(BaseUniqueNameModel):
 
 
 class Channel(BaseUniqueNameModel):
+    allowed_tags = models.JSONField(
+        default=list,
+        verbose_name='Дозволені HTML теги'
+    )
+    
     class Meta:
         verbose_name = 'Канал'
         verbose_name_plural = 'Канали'
@@ -42,6 +52,11 @@ class NotificationType(BaseUniqueNameModel):
         default=True,
         verbose_name='Кастомний тип'
     )
+    
+    @property
+    def variable_names(self):
+        "Return list of active variable names"
+        return list(self.variables.filter(is_active=True).values_list('title', flat=True))
 
     def clean(self):
 
@@ -75,7 +90,21 @@ class NotificationTemplate(BaseUniqueNameModel):
         related_name='templates',
         verbose_name='Канал'
     )
+    name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Назва шаблону',
+        verbose_name='Назва'
+    )
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Заголовок',
+        verbose_name='Заголовок'
+    )
     html = models.TextField(
+        help_text='HTML шаблон',
         verbose_name='HTML шаблон'
     )
 
@@ -85,4 +114,29 @@ class NotificationTemplate(BaseUniqueNameModel):
         ordering = ['notification_type', 'channel']
 
     def __str__(self):
-        return f'{self.notification_type.title} - {self.channel.title}'
+        name = self.name or self.notification_type.title
+        return f'{name} ({self.channel.title})'
+
+    def clean(self):
+        if self.notification_type.is_custom and not self.name:
+            raise ValidationError({
+                'name': 'Name is required'
+            })
+        
+        if self.channel.title.lower() in ['telegram', 'viber'] and self.title:
+            raise ValidationError({
+                'title': 'Title is not allowed for telegram and viber channels'
+            })
+        
+        validate_template(
+            self.html, 
+            self.channel, 
+            self.notification_type.variable_names,
+            is_custom=self.notification_type.is_custom
+        )
+        
+        validate_template_uniqueness(self)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
