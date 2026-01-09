@@ -59,13 +59,13 @@ class NotificationType(BaseUniqueNameModel):
         return list(self.variables.filter(is_active=True).values_list('title', flat=True))
 
     def clean(self):
-
         super().clean()
-        if not self.channels.exists() and self.pk:
-            if not self.channels.all().exists():
-                raise ValidationError({
-                    'channels': 'At least one channel is required'
-                })
+        # Check channels only if object is already saved (has pk)
+        # For new objects, channels will be checked after save
+        if self.pk and not self.channels.exists():
+            raise ValidationError({
+                'channels': 'At least one channel is required'
+            })
 
     def save(self, *args, **kwargs):
         self.full_clean()
