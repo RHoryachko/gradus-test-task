@@ -63,4 +63,4 @@ jobs:
       - name: Run tests
         working-directory: src
         run: |
-          python manage.py test apps.notifications apps.users apps.api_logging --verbosity=2
+          python manage.py test --verbosity=2
