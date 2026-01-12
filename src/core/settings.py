@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     
     'apps.notifications',
     'apps.users',
+    'apps.api_logging',
 
 ]
 
@@ -63,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.api_logging.middleware.APILoggingMiddleware',  # API logging middleware
 ]
 
 ROOT_URLCONF = 'core.urls'
