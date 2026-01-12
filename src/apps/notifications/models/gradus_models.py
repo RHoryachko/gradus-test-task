@@ -60,8 +60,7 @@ class NotificationType(BaseUniqueNameModel):
 
     def clean(self):
         super().clean()
-        # Check channels only if object is already saved (has pk)
-        # For new objects, channels will be checked after save
+
         if self.pk and not self.channels.exists():
             raise ValidationError({
                 'channels': 'At least one channel is required'

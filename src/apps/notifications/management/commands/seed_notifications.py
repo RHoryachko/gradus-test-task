@@ -50,11 +50,11 @@ class Command(BaseCommand):
                 self.stdout.write('Creating notification types...')
                 
                 # new survey
-                new_survey = NotificationType.objects.filter(title='new survey').first()
-                if not new_survey:
-                    new_survey = NotificationType(title='new survey', is_custom=False)
-                    new_survey.save()  # Save first to get pk
-                else:
+                new_survey, created = NotificationType.objects.get_or_create(
+                    title='new survey',
+                    defaults={'is_custom': False}
+                )
+                if not created:
                     new_survey.is_custom = False
                     new_survey.save()
                 new_survey.channels.set([
@@ -64,17 +64,16 @@ class Command(BaseCommand):
                     channels['push']
                 ])
                 new_survey.variables.set([variables['title']])
-                # Validate channels after setting (object already has pk)
                 if not new_survey.channels.exists():
                     raise ValueError(f'NotificationType "{new_survey.title}" must have at least one channel')
                 self.stdout.write(self.style.SUCCESS(f'  ✓ NotificationType: {new_survey.title}'))
                 
                 # confirm email
-                confirm_email = NotificationType.objects.filter(title='confirm email').first()
-                if not confirm_email:
-                    confirm_email = NotificationType(title='confirm email', is_custom=False)
-                    confirm_email.save()  # Save first to get pk
-                else:
+                confirm_email, created = NotificationType.objects.get_or_create(
+                    title='confirm email',
+                    defaults={'is_custom': False}
+                )
+                if not created:
                     confirm_email.is_custom = False
                     confirm_email.save()
                 confirm_email.channels.set([channels['email']])
@@ -84,11 +83,11 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'  ✓ NotificationType: {confirm_email.title}'))
                 
                 # bot successful subscribe
-                bot_subscribe = NotificationType.objects.filter(title='bot successful subscribe').first()
-                if not bot_subscribe:
-                    bot_subscribe = NotificationType(title='bot successful subscribe', is_custom=False)
-                    bot_subscribe.save()  # Save first to get pk
-                else:
+                bot_subscribe, created = NotificationType.objects.get_or_create(
+                    title='bot successful subscribe',
+                    defaults={'is_custom': False}
+                )
+                if not created:
                     bot_subscribe.is_custom = False
                     bot_subscribe.save()
                 bot_subscribe.channels.set([
@@ -101,11 +100,11 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'  ✓ NotificationType: {bot_subscribe.title}'))
                 
                 # custom
-                custom_type = NotificationType.objects.filter(title='custom').first()
-                if not custom_type:
-                    custom_type = NotificationType(title='custom', is_custom=True)
-                    custom_type.save()  # Save first to get pk
-                else:
+                custom_type, created = NotificationType.objects.get_or_create(
+                    title='custom',
+                    defaults={'is_custom': True}
+                )
+                if not created:
                     custom_type.is_custom = True
                     custom_type.save()
                 custom_type.channels.set([
