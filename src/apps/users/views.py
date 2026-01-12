@@ -15,6 +15,7 @@ from apps.users.serializers import (
 
 
 @extend_schema(
+    tags=['Authentication'],
     request=LoginSerializer,
     responses={
         200: LoginResponseSerializer,
@@ -50,6 +51,7 @@ def login_view(request):
 
 
 @extend_schema(
+    tags=['Authentication'],
     request=RefreshTokenSerializer,
     responses={
         200: RefreshTokenResponseSerializer,

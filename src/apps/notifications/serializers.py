@@ -2,7 +2,8 @@ from rest_framework import serializers
 from apps.notifications.models.gradus_models import (
     NotificationType,
     Variable,
-    Channel
+    Channel,
+    NotificationTemplate
 )
 
 
@@ -125,3 +126,83 @@ class NotificationTypeWriteSerializer(serializers.ModelSerializer):
                 instance.variables.clear()
         
         return instance
+
+
+class NotificationTypeMinimalSerializer(serializers.ModelSerializer):
+    """Minimal serializer for nested use"""
+    class Meta:
+        model = NotificationType
+        fields = ['id', 'title', 'is_custom']
+        read_only_fields = ['id', 'title', 'is_custom']
+
+
+class NotificationTemplateReadSerializer(serializers.ModelSerializer):
+    notification_type = NotificationTypeMinimalSerializer(read_only=True)
+    channel = ChannelSerializer(read_only=True)
+    
+    class Meta:
+        model = NotificationTemplate
+        fields = ['id', 'notification_type', 'channel', 'name', 'title', 
+                 'html', 'created_at', 'updated_at', 'is_active']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class NotificationTemplateWriteSerializer(serializers.ModelSerializer):
+    notification_type = serializers.CharField(help_text='Notification type title')
+    channel = serializers.CharField(help_text='Channel title')
+    
+    class Meta:
+        model = NotificationTemplate
+        fields = ['id', 'notification_type', 'channel', 'name', 'title', 
+                 'html', 'created_at', 'updated_at', 'is_active']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate_notification_type(self, value):
+        try:
+            notification_type = NotificationType.objects.get(title=value, is_active=True)
+        except NotificationType.DoesNotExist:
+            raise serializers.ValidationError(f"Notification type '{value}' not found")
+        return notification_type
+    
+    def validate_channel(self, value):
+        try:
+            channel = Channel.objects.get(title=value, is_active=True)
+        except Channel.DoesNotExist:
+            raise serializers.ValidationError(f"Channel '{value}' not found")
+        return channel
+    
+    def validate(self, attrs):
+        notification_type = attrs.get('notification_type')
+        channel = attrs.get('channel')
+        
+        if notification_type and channel:
+            if channel.title.lower() in ['telegram', 'viber'] and attrs.get('title'):
+                raise serializers.ValidationError({
+                    'title': 'Title is not allowed for telegram and viber channels'
+                })
+            
+            if notification_type.is_custom and not attrs.get('name'):
+                raise serializers.ValidationError({
+                    'name': 'Name is required for custom notification types'
+                })
+        
+        return attrs
+    
+    def create(self, validated_data):
+        template = NotificationTemplate(**validated_data)
+        template.save()
+        return template
+    
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class SendNotificationSerializer(serializers.Serializer):
+    """Serializer for sending notifications"""
+    notification_type = serializers.CharField(required=True, help_text="Notification type title")
+    context = serializers.DictField(required=True, help_text="Variables for template rendering")
+    recipient = serializers.EmailField(required=True, help_text="Email address of recipient")
+    template_name = serializers.CharField(required=False, allow_null=True, help_text="Template name (only for custom types)")
